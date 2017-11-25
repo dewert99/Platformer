@@ -1,0 +1,395 @@
+import fisica.FBox; //<>// //<>// //<>//
+import fisica.*;
+
+int INTRO = 0;
+int PLAYING = 1;
+int PAUSED = 2;
+int GAMEOVER = 3;
+int mode = INTRO;
+
+int size = 25;
+
+FWorld world;
+
+PImage map;
+PImage logo, stone, stoneTop, brick, ice, mario, goomba, dounut, Rdounut, qblock, block, spring, door, lava, lavaTop, Tread, TreadL, TreadR, koopaL, koopaR, shellL, shellR, thwomp, broL, broR, lblock, rblock;
+
+boolean rightDown, leftDown, upReleased;
+
+ArrayList<FBody> oddBodies;
+ArrayList<FBox> Doors, treads, thwomps;
+ArrayList<Enemy> enemies;
+
+boolean grounded = false;
+boolean icy = false;
+boolean wet = false;
+int treadD = 1;
+
+FBox player;
+
+void setup() {
+  fullScreen(FX2D);
+
+  logo = loadImage ("logo.PNG");
+  map = loadImage ("map6.png");
+  stone = loadImage("stone.png");
+  stoneTop = loadImage("stone top.png");
+  brick = loadImage("brick.png");
+  ice = loadImage("ice.png");
+  mario = loadImage("mario.png");
+  goomba = loadImage("Goomba.png");
+  qblock = loadImage("qblock.png");
+  block = loadImage("block.png");
+  dounut = loadImage("dounut.png");
+  Rdounut = loadImage("Rdounut.png");
+  spring = loadImage("spring.png");
+  door = loadImage("door.png");
+  lava = loadImage("lava.png");
+  lavaTop = loadImage("lava top.png");
+  Tread = loadImage("Tread.png");
+  TreadL = loadImage("TreadL.png");
+  TreadR = loadImage("TreadR.png");
+  koopaL = loadImage("koopaL.png");
+  koopaR = loadImage("koopaR.png");
+  shellL = loadImage("shellL.png");
+  shellR = loadImage("shellR.png");
+  thwomp = loadImage("twomp.png");
+  broL = loadImage("broL.png");
+  broR = loadImage("broR.png");
+  lblock = loadImage("lblock.png");
+  rblock = loadImage("rblock.png");
+
+  Fisica.init(this);
+  world = new FWorld(0, 0, map.width * size, map.height * size);
+  world.setGravity(0, 900);
+
+  rightDown = leftDown = false;
+  makeWorld();
+}
+
+void draw() {
+  background(255);
+  pushMatrix();
+
+  float tx = -player.getX() + width/2;
+  float ty = -player.getY() + height/2;
+
+  translate(tx, ty);
+
+  if (mode == INTRO) {
+    Intro();
+  } else if (mode == PLAYING) {
+    Playing();
+  } else if (mode == PAUSED) {
+    Paused();
+  } else if (mode == GAMEOVER) {
+    GameOver();
+  } else {
+    popMatrix();
+    background(255, 0, 0);
+  }
+}
+
+void Intro() {
+  world.draw();
+  popMatrix();
+  imageMode(CENTER);
+  image(logo, width/2, height/2);
+  imageMode(CORNER);
+}
+
+void Playing() {
+  if (leftDown) {
+    if (grounded) {
+      if (icy) {
+        player.adjustVelocity(-20, 0);
+      } else if (wet) {
+        player.adjustVelocity(-7, 0);
+      } else {
+        if (player.getVelocityX() > -10) {
+          player.adjustVelocity(-250, 0);
+        } else {
+          player.adjustVelocity(-52, 0);
+        }
+      }
+    } else {
+      player.adjustVelocity(-7, 0);
+    }
+  }
+  if (rightDown) {
+    if (grounded) {
+      if (icy) {
+        player.adjustVelocity(20, 0);
+      } else if (wet) {
+        player.adjustVelocity(-7, 0);
+      } else {
+        if (player.getVelocityX() < 10) {
+          player.adjustVelocity(250, 0);
+        } else {
+          player.adjustVelocity(52, 0);
+        }
+      }
+    } else {
+      player.adjustVelocity(7, 0);
+    }
+  }
+
+  handleGround();
+  world.draw();
+  world.step();
+  handleOddBodies();
+  handleEnemies();
+  handleDoors();
+  handletreads();
+  handleThwomps();
+  upReleased = false;
+  //world.drawDebug();
+  popMatrix();
+}
+
+void Paused() {
+  world.draw();
+  popMatrix();
+  fill(0, 100);
+  rect(0, 0, width, height);
+  fill(255);
+  textSize(50);
+  text("PAUSED", width/2, height/2);
+}
+void GameOver() {
+  world.draw();
+  popMatrix();
+  fill(0, 100);
+  rect(0, 0, width, height);
+  fill(255, 0, 0);
+  text("GAMEOVER", width/2, height/2);
+}
+
+void contactStarted(FContact contact) {
+  FBody other;
+  if (contact.contains("player")) {
+    if (contact.getBody1().getName() == "player") {
+      other = contact.getBody2();
+    } else {
+      other = contact.getBody1();
+    }
+    if ((contact.contains("goomba") || contact.contains("koopa") || contact.contains("shellM") || contact.contains("bro")) && player.getY() > other.getY()-size/2) {
+      mode = GAMEOVER;
+    }
+    if (contact.contains("lava")||contact.contains("twomp")) {
+      mode = GAMEOVER;
+    }
+    if (contact.contains("Qblock") && player.getY() > other.getY()+size/2) {
+      other.setName("block");
+      block.resize(round(size), round(size));
+      other.attachImage(block);
+    }
+    if (player.getY() < other.getY()-size/2) {
+      if (contact.contains("dounut")) {
+        ((DelayBox)other).timeDroping = true;
+      }
+    }
+  }
+}
+
+void contactEnded(FContact contact) {
+  FBody other;
+  if (contact.contains("player")) {
+    if (contact.getBody1().getName() == "player") {
+      other = contact.getBody2();
+    } else {
+      other = contact.getBody1();
+    }
+    if (player.getY() < other.getY()-size/2) {
+      if (contact.contains("dounut")) {
+        ((DelayBox)other).timeDroping = false;
+        ((DelayBox)other).timeLeft = 60;
+      }
+    }
+  }
+}
+
+void handleGround() {
+  grounded = false;
+  icy = false;
+  FBody b;
+  for (int i = 0; i<player.getTouching().size(); i++) {
+
+    b = ((FBody)player.getTouching().get(i));
+    
+    if (b.getName().equals("water")){
+      wet = true;
+    }
+
+    if (player.getY() < b.getY()-size/2) {
+      grounded = true;
+      if (b.getName().equals("ice")) {
+        icy = true;
+      }
+      if (b.getName().equals("goomba") || b.getName().equals("bro")) {
+        world.remove(b);
+        b.setPosition(0, 0);
+        player.adjustVelocity(0, -300);
+        player.adjustPosition(0, -1);
+      }
+      if (b.getName().equals("koopa")||b.getName().equals("shellM")) {
+        ((Enemy)b).speed = 0;
+        b.setName("shellS");
+        ((Enemy)b).resetImage();
+        player.setVelocity(0, -300);
+        player.adjustPosition(0, -1);
+      } else if (b.getName().equals("shellS")) {
+        ((Enemy)b).speed = size/10;
+        b.setName("shellM");
+        ((Enemy)b).resetImage();
+        player.setVelocity(0, -300);
+        player.adjustPosition(0, -1);
+      }
+    }
+  }
+}
+
+void handleOddBodies() {
+  for (int i = 0; i<oddBodies.size(); i++) {
+
+    if (oddBodies.get(i) instanceof DelayBox) {
+
+      DelayBox b = ((DelayBox)oddBodies.get(i));
+      b.setFill(b.timeLeft * 4);
+      if (b.timeDroping) {
+        b.timeLeft--;
+      }
+      if (b.timeLeft<20) {
+        Rdounut.resize(round(size), round(size));
+        b.attachImage(Rdounut);
+      } else {
+        dounut.resize(round(size), round(size));
+        b.attachImage(dounut);
+      }
+      if (b.timeLeft<0) {
+        b.setStatic(false);
+        b.adjustVelocity(0, 100);
+      }
+    }
+  }
+}
+void handleEnemies() {
+  for (int i = 0; i<enemies.size(); i++) {
+    Enemy b = enemies.get(i);
+    fill(255, 0, 0, 100);
+    rect(b.getX()-size/2, b.getY()-size/2, size, size);
+    b.move();
+    if (b.getName().equals("bro") &&  frameCount%60 == 0) {
+      b.Throw();
+      //print(b.getX()+" "+ i+" ");
+    }
+    for (int j = 0; j<b.getTouching().size(); j++) {
+      FBody other = ((FBody)b.getTouching().get(j));
+      if (b.getName().equals("shellM") && other instanceof Enemy) {
+        world.remove(other);
+        other.setPosition(-1, -1);
+      }
+      if (abs(b.getY()-other.getY())<size/10 && !other.isSensor()) {
+        b.direction *= -1;
+        b.resetImage();
+        j = 100;
+      }
+    }
+    //if (b.getName() == "DEAD") {
+    //  b.removeFromWorld();
+    //  b.setPosition(0, 0);
+    //}
+  }
+}
+void handleThwomps() {
+  for (int i = 0; i<thwomps.size(); i++) {
+    FBox b = thwomps.get(i);
+
+    if (abs(b.getX()-player.getX())<size*4) {
+      b.setStatic(false);
+    }
+  }
+}
+void handletreads() {
+  FBody p = new FBox(size, size);
+  for (int i = 0; i<treads.size(); i++) {
+    FBox t = treads.get(i);
+    FBody b = new FBox(size, size);
+    for (int j = 0; j<t.getContacts().size(); j++) {
+      if (((FContact)t.getContacts().get(j)).getBody1().getName().equals("tread")) {
+        b = ((FContact)t.getContacts().get(j)).getBody2();
+      } else {
+        b = ((FContact)t.getContacts().get(j)).getBody1();
+      }
+      if (b.getY() < t.getY()-size/2 && p != b) {
+        b.adjustPosition(size/20, 0);
+      }
+      p=b;
+    }
+  }
+}
+
+void handleDoors() {
+  boolean done = false;
+  if (upReleased) {
+    for (int i = 0; i<Doors.size() && !done; i++) {
+      FBox s = Doors.get(i);
+      for (int j = 0; j<s.getContacts().size(); j++) {
+        if (((FContact)s.getContacts().get(j)).contains(player)) {
+          int k = i+1;
+          while (!done) {
+            if (k >= Doors.size()) {
+              k = 0;
+            }
+            FBox e = Doors.get(k);
+            if (s.getName().equals(e.getName())) {
+              player.setPosition(e.getX(), e.getY());
+              done = true;
+            }
+            k++;
+          }
+        }
+      }
+    }
+  }
+}
+
+void keyPressed() {
+  if (key == ' ') {
+    if (wet){
+      player.adjustVelocity(0, -100);
+    } else if (grounded) {
+      player.adjustVelocity(0, -500);
+    }
+  }
+  if (keyCode == RIGHT) {
+    rightDown = true;
+  }
+  if (keyCode == LEFT) {
+    leftDown = true;
+  }
+}
+
+void keyReleased() {
+  if (keyCode == RIGHT) {
+    rightDown = false;
+  }
+  if (keyCode == LEFT) {
+    leftDown = false;
+  }
+  if (keyCode == UP) {
+    upReleased = true;
+  }
+}
+
+void mouseReleased() {
+  if (mode == PLAYING) {
+    mode = PAUSED;
+  } else if (mode == PAUSED) {
+    mode = PLAYING;
+  } else {
+    world.clear();
+    makeWorld();
+    mode = PLAYING;
+  }
+}
