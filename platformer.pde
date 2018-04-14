@@ -167,7 +167,7 @@ void Playing() {
         if (player.getVelocityX() > -10) {
           player.adjustVelocity(-270, 0);
         } else {
-          player.adjustVelocity(-66, 0);
+          player.adjustVelocity(-70, 0);
         }
       }
     } else {
@@ -188,7 +188,7 @@ void Playing() {
         if (player.getVelocityX() < 10) {
           player.adjustVelocity(270, 0);
         } else {
-          player.adjustVelocity(66, 0);
+          player.adjustVelocity(70, 0);
         }
       }
     } else {
