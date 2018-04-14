@@ -17,7 +17,7 @@ FWorld world;
 
 PImage map;
 PImage logo, stone, stoneTop, brick, ice, mario, dounut, Rdounut, qblock, block, spring, door, lava, lavaTop, Tread, TreadL, TreadR, hammer, thwomp, lblock, rblock, flagTop, flag, flagBottom;
-PImage[] runR, runL, jump, idle, currentAction, goomba, koopa, shell, broWalk, broThrow, swim;
+PImage[] runR, jump, idle, currentAction, goomba, koopa, shell, broWalk, broThrow, swim;
 int spriteN = 0;
 
 boolean rightDown, leftDown, upReleased;
@@ -70,22 +70,16 @@ void setup() {
   flag = loadImage("flag.png");
   flagBottom = loadImage("flagBottom.png");
 
-  runR = Sheet(3, "mario\\Run", 1);
-  idle = Sheet(1, "mario\\Idle", 1);
-  jump = Sheet(1, "mario\\Jump", 1);
-  swim = Sheet(3, "mario\\Swim",1);
-  goomba = Sheet(16, "goomba\\goomba", 1);
-  koopa = Sheet(20, "koopa\\koopa", 1);
-  shell = Sheet(6, "shell\\shell", 1);
-  broWalk = Sheet(17, "broWalk\\broWalk", 1);
-  broThrow = Sheet(34, "broThrow\\broThrow", 1);
+  runR = Sheet(3, "mario\\Run");
+  idle = Sheet(1, "mario\\Idle");
+  jump = Sheet(1, "mario\\Jump");
+  swim = Sheet(3, "mario\\Swim");
+  goomba = Sheet(16, "goomba\\goomba");
+  koopa = Sheet(20, "koopa\\koopa");
+  shell = Sheet(6, "shell\\shell");
+  broWalk = Sheet(17, "broWalk\\broWalk");
+  broThrow = Sheet(34, "broThrow\\broThrow");
 
-
-  runL = new PImage[4];
-  for (int i = 0; i < runL.length; i++) {
-    runL[i] = reverse(loadImage("test_0"+(i+3)+".png"));
-    runL[i].resize(round(size*2), round(size*2));
-  }
 
   currentAction = idle;
 
@@ -127,10 +121,10 @@ void draw() {
   text(coins,100,100);
 }
 
-PImage[] Sheet(int Length, String name, int start) {
+PImage[] Sheet(int Length, String name) {
   PImage[] p = new PImage[Length];
   for (int i = 0; i < Length; i++) {
-    String n = String.format("%02d", i+start);
+    String n = String.format("%02d", i+1);
     p[i] = loadImage(name+n+".png");
     p[i].resize(round(size), round(size));
   }
